@@ -82,6 +82,20 @@ class NN_Pooling(torch.nn.Module):
         out_dim: Scalar
             Dimension of resultant interaction vector
     """
+    def __init__(self, n=grp.size(), out_dim=32, no_vel=False):
+        super(NN_Pooling, self).__init__()
+        self.n = n
+        self.out_dim = out_dim
+        self.no_velocity = no_vel
+        self.input_dim = 2 if self.no_velocity else 4
+
+        # Fixed size embedding. Each neighbour gets equal-sized representation
+        # Currently, n must divide out_dim !
+        self.embedding = torch.nn.Sequential(
+            torch.nn.Linear(self.input_dim, int(out_dim/self.n)),
+            torch.nn.ReLU(),
+        )
+       #nearest_grid will contain all thse neighbors
     def __init__(self, n=4, out_dim=32, no_vel=False):
         super(NN_Pooling, self).__init__()
         self.n = n
