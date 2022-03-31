@@ -82,6 +82,20 @@ class NN_Pooling(torch.nn.Module):
         out_dim: Scalar
             Dimension of resultant interaction vector
     """
+    def __init__(self, n=grp.size(), out_dim=32, no_vel=False):
+        super(NN_Pooling, self).__init__()
+        self.n = n
+        self.out_dim = out_dim
+        self.no_velocity = no_vel
+        self.input_dim = 2 if self.no_velocity else 4
+
+        # Fixed size embedding. Each neighbour gets equal-sized representation
+        # Currently, n must divide out_dim !
+        self.embedding = torch.nn.Sequential(
+            torch.nn.Linear(self.input_dim, int(out_dim/self.n)),
+            torch.nn.ReLU(),
+        )
+       #nearest_grid will contain all thse neighbors
     def __init__(self, n=4, out_dim=32, no_vel=False):
         super(NN_Pooling, self).__init__()
         self.n = n
@@ -92,7 +106,7 @@ class NN_Pooling(torch.nn.Module):
         # Fixed size embedding. Each neighbour gets equal-sized representation
         # Currently, n must divide out_dim !
         self.embedding = torch.nn.Sequential(
-            torch.nn.Linear(self.input_dim, int(out_dim/2)),
+            torch.nn.Linear(self.input_dim, int(out_dim/self.n)),
             torch.nn.ReLU(),
         )
 
@@ -137,25 +151,16 @@ class NN_Pooling(torch.nn.Module):
 
         # Get nearest n neighours
         if (num_tracks - 1) < self.n:
-            nearest_grid = torch.zeros((num_tracks, 2, self.input_dim), device=obs2.device)
-            # nearest_grid[:, :(num_tracks-1)] = overall_grid
-            group_grid = torch.zeros((num_tracks, 2, self.input_dim), device=obs2.device)
-            # group_grid[:, :(num_tracks-1)] = overall_grid
+            nearest_grid = torch.zeros((num_tracks, self.n, self.input_dim), device=obs2.device)
+            nearest_grid[:, :(num_tracks-1)] = overall_grid
         else:
             rel_distance = torch.norm(rel_position, dim=2)
             _, dist_index = torch.topk(-rel_distance, self.n, dim=1)
-            group_index = dist_index[:,:2]
-            dist_index = dist_index[:, 2:]
-            # print(group_index.size())
-            # print(dist_index.size())
-            group_grid = torch.gather(overall_grid, 1, group_index.unsqueeze(2).repeat(1, 1, self.input_dim))
             nearest_grid = torch.gather(overall_grid, 1, dist_index.unsqueeze(2).repeat(1, 1, self.input_dim))
 
         ## Embed top-n relative neighbour attributes
         nearest_grid = self.embedding(nearest_grid)
-        group_grid = self.embedding(group_grid)
-        
-        return nearest_grid.view(num_tracks, -1), group_grid.view(num_tracks, -1)
+        return nearest_grid.view(num_tracks, -1)
 
 class HiddenStateMLPPooling(torch.nn.Module):
     """ Interaction vector is obtained by max-pooling the embeddings of relative coordinates

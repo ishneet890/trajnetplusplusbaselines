@@ -61,8 +61,8 @@ class LSTM(torch.nn.Module):
             pooling_dim = self.pool.out_dim 
         
         ## LSTMs
-        self.encoder = torch.nn.LSTMCell(self.embedding_dim + goal_rep_dim + pooling_dim + pooling_dim, self.hidden_dim)
-        self.decoder = torch.nn.LSTMCell(self.embedding_dim + goal_rep_dim + pooling_dim + pooling_dim, self.hidden_dim)
+        self.encoder = torch.nn.LSTMCell(self.embedding_dim + goal_rep_dim + pooling_dim, self.hidden_dim)
+        self.decoder = torch.nn.LSTMCell(self.embedding_dim + goal_rep_dim + pooling_dim, self.hidden_dim)
 
         # Predict the parameters of a multivariate normal:
         # mu_vel_x, mu_vel_y, sigma_vel_x, sigma_vel_y, rho
@@ -122,7 +122,6 @@ class LSTM(torch.nn.Module):
         if self.pool is not None:
             hidden_states_to_pool = torch.stack(hidden_cell_state[0]).clone() # detach?
             batch_pool = []
-            batch_group_pool = []
             ## Iterate over scenes
             for (start, end) in zip(batch_split[:-1], batch_split[1:]):
                 ## Mask for the scene
@@ -139,17 +138,12 @@ class LSTM(torch.nn.Module):
                 self.pool.track_mask = interaction_track_mask
 
                 ## Pool
-                pool_sample, group_sample = self.pool(curr_hidden_state, prev_position, curr_position)
+                pool_sample = self.pool(curr_hidden_state, prev_position, curr_position)
                 batch_pool.append(pool_sample)
-                batch_group_pool.append(group_sample)
 
             pooled = torch.cat(batch_pool)
-            group_pooled = torch.cat(batch_group_pool)
-            # print(pooled.size())
             if self.pool_to_input:
                 input_emb = torch.cat([input_emb, pooled], dim=1)
-                input_emb = torch.cat([input_emb, group_pooled], dim=1)
-                # print(input_emb.size())
             else:
                 hidden_cell_stacked[0] += pooled
 
