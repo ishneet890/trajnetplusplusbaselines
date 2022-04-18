@@ -408,7 +408,7 @@ def main(epochs=25):
                                  help='embedding dimension for relative position')
     hyperparameters.add_argument('--vel_dim', type=int, default=32,
                                  help='embedding dimension for relative velocity')
-    hyperparameters.add_argument('--neigh', default=4, type=int,
+    hyperparameters.add_argument('--neigh', default=9, type=int,
                                  help='number of nearest neighbours to consider')
     hyperparameters.add_argument('--mp_iters', default=5, type=int,
                                  help='message passing iterations in NMMP')

@@ -144,8 +144,8 @@ class NN_Pooling(torch.nn.Module):
         else:
             rel_distance = torch.norm(rel_position, dim=2)
             _, dist_index = torch.topk(-rel_distance, self.n, dim=1)
-            group_index = dist_index[:,:2]
-            dist_index = dist_index[:, 2:]
+            group_index = dist_index[:,:4]
+            dist_index = dist_index[:, 5:]
             # print(group_index.size())
             # print(dist_index.size())
             group_grid = torch.gather(overall_grid, 1, group_index.unsqueeze(2).repeat(1, 1, self.input_dim))
